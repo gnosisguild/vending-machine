@@ -14,6 +14,11 @@
 
 A token vending machine.
 
+### Security and Liability
+
+All contracts are WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+PURPOSE.
+
 ## License
 
 This project is licensed under LGPLv3.
