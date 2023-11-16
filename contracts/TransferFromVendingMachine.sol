@@ -3,12 +3,8 @@ pragma solidity ^0.8.20;
 
 import { VendingMachineBase, IERC20 } from "./VendingMachineBase.sol";
 
-interface Mintable {
-    function mint(address to, uint256 amount) external;
-}
-
 contract TransferFromVendingMachine is VendingMachineBase {
-    address vendor;
+    address public vendor;
 
     event VendorSet(address emitter, address vendor);
 
