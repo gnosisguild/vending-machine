@@ -8,55 +8,43 @@ abstract contract VendingMachineBase is Ownable {
     using SafeERC20 for IERC20;
 
     address public recipient;
-    IERC20 public product;
-    IERC20 public token;
+    IERC20 public outToken;
+    IERC20 public inToken;
     uint16 public productRatio;
     uint16 public tokenRatio;
 
     event RecipientSet(address emitter, address recipient);
-    event ProductSet(address emitter, IERC20 product);
-    event TokenSet(address emitter, IERC20 token);
+    event OutTokenSet(address emitter, IERC20 outToken);
+    event InTokenSet(address emitter, IERC20 inToken);
     event RatioSet(address emitter, uint16 productRatio, uint16 tokenRatio);
+    event VendingReciept(address emitter, address indexed buyer, uint256 spent, uint256 vended);
 
-    error RatioCannotBeZero(uint16 _productRatio, uint16 _tokenRatio);
+    error RatioCannotBeZero(uint16 _outTokenRatio, uint16 _inTokenRatio);
+    error TokenAddressCannotBeZero();
 
     constructor(
         address _owner,
         address _recipient,
-        IERC20 _product,
-        IERC20 _token,
-        uint16 _productRatio,
-        uint16 _tokenRatio
+        IERC20 _outToken,
+        IERC20 _inToken,
+        uint16 _outTokenRatio,
+        uint16 _inTokenRatio
     ) Ownable(_owner) {
         setRecipient(_recipient);
-        setProduct(_product);
-        setToken(_token);
-        setRatio(_productRatio, _tokenRatio);
+        setOutToken(_outToken);
+        setInToken(_inToken);
+        setRatio(_outTokenRatio, _inTokenRatio);
     }
 
     function _vend(uint256 amount) internal virtual;
 
-    /// @notice Purchase `amount` worth of `product` from the vending machine.
-    /// @param amount `amount` of `tokens` to spend on `product`.
-    function vend(uint256 amount) public returns (uint256 amountMinted) {
-        token.transferFrom(msg.sender, recipient, amount);
-
-        uint256 amountToMint;
-        if (productRatio == tokenRatio) {
-            amountToMint = amount;
-            _vend(amountToMint);
-            return (amountToMint);
-        }
-
-        uint16 ratioSum = productRatio + tokenRatio;
-
-        if (productRatio > tokenRatio) {
-            amountToMint = (amount * ratioSum) / productRatio;
-            _vend(amountToMint);
-        } else {
-            amountToMint = (amount * ratioSum) / tokenRatio;
-            _vend(amountToMint);
-        }
+    /// @notice Purchase `amount` worth of `outToken` from the vending machine.
+    /// @param amount `amount` of `tokens` to spend on `outToken`.
+    function vend(uint256 amount) public returns (uint256 amountVended) {
+        inToken.transferFrom(msg.sender, recipient, amount);
+        amountVended = (amount * productRatio) / tokenRatio;
+        _vend(amountVended);
+        emit VendingReciept(address(this), msg.sender, amount, amountVended);
     }
 
     /// @notice sets the account which will receive `token`.
@@ -67,30 +55,32 @@ abstract contract VendingMachineBase is Ownable {
         emit RecipientSet(address(this), _recipient);
     }
 
-    /// @notice sets the `product` to be vended.
-    /// @param _product address of `product`.
+    /// @notice sets the `outToken` to be vended.
+    /// @param _outToken address of `outToken`.
     /// @dev only callable by `owner`.
-    function setProduct(IERC20 _product) public onlyOwner {
-        product = _product;
-        emit ProductSet(address(this), _product);
+    function setOutToken(IERC20 _outToken) public onlyOwner {
+        if (_outToken == IERC20(address(0))) revert TokenAddressCannotBeZero();
+        outToken = _outToken;
+        emit OutTokenSet(address(this), _outToken);
     }
 
     /// @notice sets the `token` used for vending.
-    /// @param _token address of `token`.
+    /// @param _inToken address of `token`.
     /// @dev only callable by `owner`.
-    function setToken(IERC20 _token) public onlyOwner {
-        token = _token;
-        emit TokenSet(address(this), _token);
+    function setInToken(IERC20 _inToken) public onlyOwner {
+        if (_inToken == IERC20(address(0))) revert TokenAddressCannotBeZero();
+        inToken = _inToken;
+        emit InTokenSet(address(this), _inToken);
     }
 
-    /// @notice sets the product to token ratio.
-    /// @param _productRatio value to be set to `productRatio`.
-    /// @param _tokenRatio value to be set to `tokenRatio`.
+    /// @notice sets the outToken to token ratio.
+    /// @param _outTokenRatio value to be set to `productRatio`.
+    /// @param _inTokenRatio value to be set to `tokenRatio`.
     /// @dev only callable by `owner`.
-    function setRatio(uint16 _productRatio, uint16 _tokenRatio) public onlyOwner {
-        if (_productRatio == 0 || _tokenRatio == 0) revert RatioCannotBeZero(_productRatio, _tokenRatio);
-        productRatio = _productRatio;
-        tokenRatio = _tokenRatio;
-        emit RatioSet(address(this), _productRatio, _tokenRatio);
+    function setRatio(uint16 _outTokenRatio, uint16 _inTokenRatio) public onlyOwner {
+        if (_outTokenRatio == 0 || _inTokenRatio == 0) revert RatioCannotBeZero(_outTokenRatio, _inTokenRatio);
+        productRatio = _outTokenRatio;
+        tokenRatio = _inTokenRatio;
+        emit RatioSet(address(this), _outTokenRatio, _inTokenRatio);
     }
 }

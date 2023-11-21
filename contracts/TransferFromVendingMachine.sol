@@ -12,11 +12,11 @@ contract TransferFromVendingMachine is VendingMachineBase {
         address _owner,
         address _vendor,
         address _recipient,
-        IERC20 _product,
-        IERC20 _token,
-        uint16 _productRatio,
-        uint16 _tokenRatio
-    ) VendingMachineBase(_owner, _recipient, _product, _token, _productRatio, _tokenRatio) {
+        IERC20 _outToken,
+        IERC20 _inToken,
+        uint16 _outTokenRatio,
+        uint16 _inTokenRatio
+    ) VendingMachineBase(_owner, _recipient, _outToken, _inToken, _outTokenRatio, _inTokenRatio) {
         setVendor(_vendor);
     }
 
@@ -29,6 +29,6 @@ contract TransferFromVendingMachine is VendingMachineBase {
     }
 
     function _vend(uint256 amount) internal override {
-        product.transferFrom(vendor, msg.sender, amount);
+        outToken.transferFrom(vendor, msg.sender, amount);
     }
 }
