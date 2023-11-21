@@ -1,6 +1,5 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
-import exp from "constants";
 import { ethers } from "hardhat";
 
 const ADDRESS_ONE = "0x0000000000000000000000000000000000000001";
