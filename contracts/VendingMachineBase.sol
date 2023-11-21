@@ -20,8 +20,8 @@ abstract contract VendingMachineBase is Ownable {
     event VendingReciept(address emitter, address indexed buyer, uint256 spent, uint256 vended);
     event TokensSwept(address emitter, IERC20[] tokens, uint256[] amountsSwept);
 
-    error RatioCannotBeZero(uint16 _outTokenRatio, uint16 _inTokenRatio);
-    error TokenAddressCannotBeZero();
+    error RatioCannotBeZero(address emitter, uint16 _outTokenRatio, uint16 _inTokenRatio);
+    error TokenAddressCannotBeZero(address emitter);
 
     constructor(
         address _owner,
@@ -60,7 +60,7 @@ abstract contract VendingMachineBase is Ownable {
     /// @param _outToken address of `outToken`.
     /// @dev only callable by `owner`.
     function setOutToken(IERC20 _outToken) public onlyOwner {
-        if (_outToken == IERC20(address(0))) revert TokenAddressCannotBeZero();
+        if (_outToken == IERC20(address(0))) revert TokenAddressCannotBeZero(address(this));
         outToken = _outToken;
         emit OutTokenSet(address(this), _outToken);
     }
@@ -69,7 +69,7 @@ abstract contract VendingMachineBase is Ownable {
     /// @param _inToken address of `token`.
     /// @dev only callable by `owner`.
     function setInToken(IERC20 _inToken) public onlyOwner {
-        if (_inToken == IERC20(address(0))) revert TokenAddressCannotBeZero();
+        if (_inToken == IERC20(address(0))) revert TokenAddressCannotBeZero(address(this));
         inToken = _inToken;
         emit InTokenSet(address(this), _inToken);
     }
@@ -79,17 +79,20 @@ abstract contract VendingMachineBase is Ownable {
     /// @param _inTokenRatio value to be set to `inTokenRatio`.
     /// @dev only callable by `owner`.
     function setRatio(uint16 _outTokenRatio, uint16 _inTokenRatio) public onlyOwner {
-        if (_outTokenRatio == 0 || _inTokenRatio == 0) revert RatioCannotBeZero(_outTokenRatio, _inTokenRatio);
+        if (_outTokenRatio == 0 || _inTokenRatio == 0)
+            revert RatioCannotBeZero(address(this), _outTokenRatio, _inTokenRatio);
         outTokenRatio = _outTokenRatio;
         inTokenRatio = _inTokenRatio;
         emit RatioSet(address(this), _outTokenRatio, _inTokenRatio);
     }
 
-    function sweepTokens(IERC20[] memory tokens) public onlyOwner returns (uint256[] memory amountsSwept) {
+    function sweepTokens(IERC20[] memory tokens) public onlyOwner returns (uint256[] memory) {
+        uint256[] memory amountsSwept = new uint256[](tokens.length);
         for (uint256 i = 0; i < tokens.length; i++) {
             amountsSwept[i] = tokens[i].balanceOf(address(this));
             tokens[i].safeTransfer(recipient, amountsSwept[i]);
         }
         emit TokensSwept(address(this), tokens, amountsSwept);
+        return amountsSwept;
     }
 }
