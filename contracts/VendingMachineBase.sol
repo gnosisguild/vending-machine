@@ -86,7 +86,7 @@ abstract contract VendingMachineBase is Ownable {
     }
 
     function sweepTokens(IERC20[] memory tokens) public onlyOwner returns (uint256[] memory amountsSwept) {
-        for (uint i = 0; i < tokens.length; i++) {
+        for (uint256 i = 0; i < tokens.length; i++) {
             amountsSwept[i] = tokens[i].balanceOf(address(this));
             tokens[i].safeTransfer(recipient, amountsSwept[i]);
         }
