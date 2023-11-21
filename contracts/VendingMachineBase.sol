@@ -18,6 +18,7 @@ abstract contract VendingMachineBase is Ownable {
     event InTokenSet(address emitter, IERC20 inToken);
     event RatioSet(address emitter, uint16 productRatio, uint16 tokenRatio);
     event VendingReciept(address emitter, address indexed buyer, uint256 spent, uint256 vended);
+    event TokensSwept(address emitter, IERC20 token, uint256 amountSwept);
 
     error RatioCannotBeZero(uint16 _outTokenRatio, uint16 _inTokenRatio);
     error TokenAddressCannotBeZero();
@@ -82,5 +83,11 @@ abstract contract VendingMachineBase is Ownable {
         productRatio = _outTokenRatio;
         tokenRatio = _inTokenRatio;
         emit RatioSet(address(this), _outTokenRatio, _inTokenRatio);
+    }
+
+    function sweepTokens(IERC20 token) public onlyOwner returns (uint256 amountSwept) {
+        amountSwept = token.balanceOf(address(this));
+        token.safeTransfer(recipient, amountSwept);
+        emit TokensSwept(address(this), token, amountSwept);
     }
 }
