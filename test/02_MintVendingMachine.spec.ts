@@ -2,14 +2,26 @@ import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 
-const ADDRESS_ONE = "0x0000000000000000000000000000000000000001";
+const MINTER_ROLE = ethers.keccak256(ethers.toUtf8Bytes("MINTER_ROLE"));
 
 describe("MintVendingMachine", () => {
   async function deployContracts() {
     const [deployer, receiver] = await ethers.getSigners();
     const Token = await await ethers.getContractFactory("VendableToken");
-    const outToken = await Token.connect(deployer).deploy(deployer.address, "Out Token", "OT");
-    const inToken = await Token.connect(deployer).deploy(deployer.address, "In Token", "IT");
+    const outToken = await Token.connect(deployer).deploy(
+      deployer.address,
+      deployer.address,
+      deployer.address,
+      "Out Token",
+      "OT",
+    );
+    const inToken = await Token.connect(deployer).deploy(
+      deployer.address,
+      deployer.address,
+      deployer.address,
+      "In Token",
+      "IT",
+    );
     const outTokenRatio = 1;
     const inTokenRatio = 2;
     const VendingMachine = await ethers.getContractFactory("MintVendingMachine");
@@ -49,8 +61,8 @@ describe("MintVendingMachine", () => {
       await inToken.mint(deployer.address, amountToMint);
       await inToken.approve(await vendingMachine.getAddress(), amountToSpend);
       await expect(vendingMachine.vend(amountToSpend))
-        .to.be.revertedWithCustomError(inToken, "OwnableUnauthorizedAccount")
-        .withArgs(await vendingMachine.getAddress());
+        .to.be.revertedWithCustomError(inToken, "AccessControlUnauthorizedAccount")
+        .withArgs(await vendingMachine.getAddress(), MINTER_ROLE);
     });
     it("vend the given amount of tokens", async () => {
       const { vendingMachine, deployer, outToken, inToken, inTokenRatio, outTokenRatio } = await loadFixture(
@@ -60,7 +72,7 @@ describe("MintVendingMachine", () => {
       const amountToMint = ethers.parseEther("1");
       const expectedOutput = (amountToSpend * ethers.toBigInt(outTokenRatio)) / ethers.toBigInt(inTokenRatio);
 
-      await outToken.transferOwnership(vendingMachine.getAddress());
+      await outToken.grantRole(MINTER_ROLE, await vendingMachine.getAddress());
       await inToken.mint(deployer.address, amountToMint);
       await inToken.approve(await vendingMachine.getAddress(), amountToSpend);
 

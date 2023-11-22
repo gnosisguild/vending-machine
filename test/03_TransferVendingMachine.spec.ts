@@ -2,14 +2,24 @@ import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 
-const ADDRESS_ONE = "0x0000000000000000000000000000000000000001";
-
 describe("TransferVendingMachine", () => {
   async function deployContracts() {
     const [deployer, receiver] = await ethers.getSigners();
     const Token = await await ethers.getContractFactory("VendableToken");
-    const outToken = await Token.connect(deployer).deploy(deployer.address, "Out Token", "OT");
-    const inToken = await Token.connect(deployer).deploy(deployer.address, "In Token", "IT");
+    const outToken = await Token.connect(deployer).deploy(
+      deployer.address,
+      deployer.address,
+      deployer.address,
+      "Out Token",
+      "OT",
+    );
+    const inToken = await Token.connect(deployer).deploy(
+      deployer.address,
+      deployer.address,
+      deployer.address,
+      "In Token",
+      "IT",
+    );
     const outTokenRatio = 1;
     const inTokenRatio = 2;
     const VendingMachine = await ethers.getContractFactory("TransferVendingMachine");

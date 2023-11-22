@@ -2,14 +2,26 @@ import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 
-const ADDRESS_ONE = "0x0000000000000000000000000000000000000001";
+const MINTER_ROLE = ethers.keccak256(ethers.toUtf8Bytes("MINTER_ROLE"));
 
 describe("VendingMachineBase", () => {
   async function deployContracts() {
     const [deployer, receiver] = await ethers.getSigners();
     const Token = await await ethers.getContractFactory("VendableToken");
-    const outToken = await Token.connect(deployer).deploy(deployer.address, "Out Token", "OT");
-    const inToken = await Token.connect(deployer).deploy(deployer.address, "In Token", "IT");
+    const outToken = await Token.connect(deployer).deploy(
+      deployer.address,
+      deployer.address,
+      deployer.address,
+      "Out Token",
+      "OT",
+    );
+    const inToken = await Token.connect(deployer).deploy(
+      deployer.address,
+      deployer.address,
+      deployer.address,
+      "In Token",
+      "IT",
+    );
     const outTokenRatio = 1;
     const inTokenRatio = 2;
     const VendingMachine = await ethers.getContractFactory("MintVendingMachine");
@@ -46,7 +58,7 @@ describe("VendingMachineBase", () => {
       const amountToSpend = ethers.parseEther("2");
       const amountToMint = ethers.parseEther("1");
 
-      await outToken.transferOwnership(vendingMachine.getAddress());
+      await outToken.grantRole(MINTER_ROLE, await vendingMachine.getAddress());
       await inToken.mint(deployer.address, amountToMint);
       await inToken.approve(await vendingMachine.getAddress(), amountToSpend);
 
@@ -59,7 +71,7 @@ describe("VendingMachineBase", () => {
       const amountToSpend = ethers.parseEther("2");
       const amountToMint = ethers.parseEther("1");
 
-      await outToken.transferOwnership(vendingMachine.getAddress());
+      await outToken.grantRole(MINTER_ROLE, await vendingMachine.getAddress());
       await inToken.mint(deployer.address, amountToMint);
 
       await expect(vendingMachine.vend(amountToSpend))
@@ -74,7 +86,7 @@ describe("VendingMachineBase", () => {
       const amountToMint = ethers.parseEther("1");
       const expectedOutput = (amountToSpend * ethers.toBigInt(outTokenRatio)) / ethers.toBigInt(inTokenRatio);
 
-      await outToken.transferOwnership(vendingMachine.getAddress());
+      await outToken.grantRole(MINTER_ROLE, await vendingMachine.getAddress());
       await inToken.mint(deployer.address, amountToMint);
       await inToken.approve(await vendingMachine.getAddress(), amountToSpend);
 
@@ -89,7 +101,7 @@ describe("VendingMachineBase", () => {
       const amountToMint = ethers.parseEther("1");
       const expectedOutput = (amountToSpend * ethers.toBigInt(outTokenRatio)) / ethers.toBigInt(inTokenRatio);
 
-      await outToken.transferOwnership(vendingMachine.getAddress());
+      await outToken.grantRole(MINTER_ROLE, await vendingMachine.getAddress());
       await inToken.mint(deployer.address, amountToMint);
       await inToken.approve(await vendingMachine.getAddress(), amountToSpend);
 
