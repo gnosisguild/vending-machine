@@ -14,6 +14,8 @@
 
 A simple contract allowing one to vend a token for a set rate against another token.
 
+![Vending Machine](vending_machine.png)
+
 ## Features
 
 Three variants of the vending machine contract are provided:
