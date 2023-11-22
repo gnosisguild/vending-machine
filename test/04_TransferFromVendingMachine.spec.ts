@@ -43,8 +43,76 @@ describe("TransferVendingMachine", () => {
   });
 
   describe("_vend()", async () => {
-    it("revert if vendor has not approved enough tokens");
-    it("revert if vendor balance is too low");
-    it("vend the given amount of tokens");
+    it("revert if vendor has not approved enough tokens", async () => {
+      const { vendingMachine, deployer, inToken, outTokenRatio, inTokenRatio } = await loadFixture(deployContracts);
+      const amountToSpend = ethers.parseEther("1");
+      const expectedOutput = (amountToSpend * ethers.toBigInt(outTokenRatio)) / ethers.toBigInt(inTokenRatio);
+
+      await inToken.mint(deployer.address, amountToSpend);
+      await inToken.approve(await vendingMachine.getAddress(), amountToSpend);
+
+      await expect(vendingMachine.vend(amountToSpend))
+        .to.be.revertedWithCustomError(inToken, "ERC20InsufficientAllowance")
+        .withArgs(await vendingMachine.getAddress(), 0, expectedOutput);
+    });
+    it("revert if vendor balance is too low", async () => {
+      const { vendingMachine, deployer, inToken, outToken, outTokenRatio, inTokenRatio } = await loadFixture(
+        deployContracts,
+      );
+      const amountToSpend = ethers.parseEther("1");
+      const amountToMint = ethers.parseEther("0.1");
+      const expectedOutput = (amountToSpend * ethers.toBigInt(outTokenRatio)) / ethers.toBigInt(inTokenRatio);
+
+      await inToken.mint(deployer.address, amountToSpend);
+      await inToken.approve(await vendingMachine.getAddress(), amountToSpend);
+      await outToken.mint(deployer.address, amountToMint);
+      await outToken.approve(await vendingMachine.getAddress(), amountToSpend);
+
+      await expect(vendingMachine.vend(amountToSpend))
+        .to.be.revertedWithCustomError(inToken, "ERC20InsufficientBalance")
+        .withArgs(deployer.address, amountToMint, expectedOutput);
+    });
+    it("vend the given amount of tokens", async () => {
+      const { vendingMachine, deployer, receiver, outToken, inToken, inTokenRatio, outTokenRatio } = await loadFixture(
+        deployContracts,
+      );
+      const amountToSpend = ethers.parseEther("1");
+      const amountToMint = ethers.parseEther("1");
+      const expectedOutput = (amountToSpend * ethers.toBigInt(outTokenRatio)) / ethers.toBigInt(inTokenRatio);
+
+      await inToken.mint(receiver.address, amountToSpend);
+      await inToken.connect(receiver).approve(await vendingMachine.getAddress(), amountToSpend);
+      await outToken.mint(deployer.address, amountToMint);
+      await outToken.approve(await vendingMachine.getAddress(), amountToMint);
+
+      expect(await outToken.balanceOf(receiver.address)).to.equal(0);
+      expect(await outToken.balanceOf(deployer.address)).to.equal(amountToMint);
+      expect(await vendingMachine.connect(receiver).vend(amountToSpend));
+      expect(await outToken.balanceOf(receiver.address)).to.equal(expectedOutput);
+      expect(await outToken.balanceOf(deployer.address)).to.equal(amountToMint - expectedOutput);
+    });
+  });
+
+  describe("setVendor()", async () => {
+    it("revert if not called by owner", async () => {
+      const { vendingMachine, receiver } = await loadFixture(deployContracts);
+
+      await expect(vendingMachine.connect(receiver).setVendor(receiver.address))
+        .to.be.revertedWithCustomError(vendingMachine, "OwnableUnauthorizedAccount")
+        .withArgs(receiver.address);
+    });
+    it("set vendor to given address", async () => {
+      const { vendingMachine, receiver } = await loadFixture(deployContracts);
+
+      expect(await vendingMachine.setVendor(receiver.address));
+      expect(await vendingMachine.vendor()).to.equal(receiver.address);
+    });
+    it("emit VendorSet", async () => {
+      const { vendingMachine, receiver } = await loadFixture(deployContracts);
+
+      await expect(await vendingMachine.setVendor(receiver.address))
+        .to.emit(vendingMachine, "VendorSet")
+        .withArgs(await vendingMachine.getAddress(), receiver.address);
+    });
   });
 });

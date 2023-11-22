@@ -219,7 +219,7 @@ describe("VendingMachineBase", () => {
     });
   });
 
-  describe.only("sweepTokens()", async () => {
+  describe("sweepTokens()", async () => {
     it("revert if not called by owner", async () => {
       const { vendingMachine, receiver, inToken } = await loadFixture(deployContracts);
 
@@ -227,12 +227,14 @@ describe("VendingMachineBase", () => {
         .to.be.revertedWithCustomError(vendingMachine, "OwnableUnauthorizedAccount")
         .withArgs(receiver.address);
     });
-    it("sweep full balance of given tokens", async () => {
+    it("sweeps full balance of given tokens", async () => {
       const { vendingMachine, inToken, outToken, deployer } = await loadFixture(deployContracts);
       const amountToMint = ethers.parseEther("1");
 
       await inToken.mint(await vendingMachine.getAddress(), amountToMint);
       await outToken.mint(await vendingMachine.getAddress(), amountToMint);
+      expect(await inToken.balanceOf(deployer.address)).to.equal(0);
+      expect(await outToken.balanceOf(deployer.address)).to.equal(0);
       expect(await vendingMachine.sweepTokens([await inToken.getAddress(), await outToken.getAddress()]));
       expect(await inToken.balanceOf(await vendingMachine.getAddress())).to.equal(0);
       expect(await outToken.balanceOf(await vendingMachine.getAddress())).to.equal(0);

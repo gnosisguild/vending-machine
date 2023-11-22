@@ -41,8 +41,31 @@ describe("MintVendingMachine", () => {
   });
 
   describe("_vend()", async () => {
-    it("revert if VendingMachine cannot mint tokens");
-    it("vend the given amount of tokens");
-    it("emit VendingReceipt");
+    it("revert if VendingMachine cannot mint tokens", async () => {
+      const { vendingMachine, deployer, inToken } = await loadFixture(deployContracts);
+      const amountToSpend = ethers.parseEther("1");
+      const amountToMint = ethers.parseEther("1");
+
+      await inToken.mint(deployer.address, amountToMint);
+      await inToken.approve(await vendingMachine.getAddress(), amountToSpend);
+      await expect(vendingMachine.vend(amountToSpend))
+        .to.be.revertedWithCustomError(inToken, "OwnableUnauthorizedAccount")
+        .withArgs(await vendingMachine.getAddress());
+    });
+    it("vend the given amount of tokens", async () => {
+      const { vendingMachine, deployer, outToken, inToken, inTokenRatio, outTokenRatio } = await loadFixture(
+        deployContracts,
+      );
+      const amountToSpend = ethers.parseEther("1");
+      const amountToMint = ethers.parseEther("1");
+      const expectedOutput = (amountToSpend * ethers.toBigInt(outTokenRatio)) / ethers.toBigInt(inTokenRatio);
+
+      await outToken.transferOwnership(vendingMachine.getAddress());
+      await inToken.mint(deployer.address, amountToMint);
+      await inToken.approve(await vendingMachine.getAddress(), amountToSpend);
+
+      expect(await vendingMachine.vend(amountToSpend));
+      expect(await outToken.balanceOf(deployer.address)).to.equal(expectedOutput);
+    });
   });
 });

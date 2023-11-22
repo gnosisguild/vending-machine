@@ -41,7 +41,37 @@ describe("TransferVendingMachine", () => {
   });
 
   describe("_vend()", async () => {
-    it("revert if vending machine does not have enough tokens");
-    it("vend the given amount of tokens");
+    it("revert if vending machine does not have enough tokens", async () => {
+      const { vendingMachine, deployer, inToken, outToken, outTokenRatio, inTokenRatio } = await loadFixture(
+        deployContracts,
+      );
+      const amountToSpend = ethers.parseEther("3");
+      const amountToMint = ethers.parseEther("1");
+      const expectedOutput = (amountToSpend * ethers.toBigInt(outTokenRatio)) / ethers.toBigInt(inTokenRatio);
+
+      await inToken.mint(deployer.address, amountToSpend);
+      await inToken.approve(await vendingMachine.getAddress(), amountToSpend);
+      await outToken.mint(await vendingMachine.getAddress(), amountToMint);
+
+      await expect(vendingMachine.vend(amountToSpend))
+        .to.be.revertedWithCustomError(inToken, "ERC20InsufficientBalance")
+        .withArgs(await vendingMachine.getAddress(), amountToMint, expectedOutput);
+    });
+    it("vend the given amount of tokens", async () => {
+      const { vendingMachine, deployer, outToken, inToken, inTokenRatio, outTokenRatio } = await loadFixture(
+        deployContracts,
+      );
+      const amountToSpend = ethers.parseEther("1");
+      const amountToMint = ethers.parseEther("1");
+      const expectedOutput = (amountToSpend * ethers.toBigInt(outTokenRatio)) / ethers.toBigInt(inTokenRatio);
+
+      await inToken.mint(deployer.address, amountToMint);
+      await inToken.approve(await vendingMachine.getAddress(), amountToSpend);
+      await outToken.mint(await vendingMachine.getAddress(), amountToMint);
+
+      expect(await outToken.balanceOf(deployer.address)).to.equal(0);
+      expect(await vendingMachine.vend(amountToSpend));
+      expect(await outToken.balanceOf(deployer.address)).to.equal(expectedOutput);
+    });
   });
 });
